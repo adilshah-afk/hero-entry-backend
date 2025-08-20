@@ -3,6 +3,7 @@ const router = express.Router();
 const User = require("../models/user");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const Post = require("../models/post");
 const authMiddleware = require("../middleware/authMiddleware");
 
 // Register (optional)
@@ -48,6 +49,35 @@ router.get("/profile", authMiddleware, async (req, res) => {
     if (!user) return res.status(404).json({ msg: "User not found" });
 
     res.json(user); // send full user data
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// Create a post
+router.post("/posts", authMiddleware, async (req, res) => {
+  try {
+    const { content } = req.body;
+    const newPost = new Post({
+      content,
+      author: req.user, // author is set from the decoded user ID
+    });
+    await newPost.save();
+    res.json(newPost);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// Get all posts (for homepage)
+router.get("/posts", async (req, res) => {
+  try {
+    const posts = await Post.find()
+      .populate("author", "name") // only include author name
+      .sort({ createdAt: -1 }); // newest first
+    res.json(posts);
   } catch (err) {
     console.error(err);
     res.status(500).json({ msg: "Server error" });
